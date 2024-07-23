@@ -1,6 +1,9 @@
 from django.utils.translation import gettext_lazy as _
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SellerManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -10,6 +13,7 @@ class SellerManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+        logger.info(f"Seller {user.email} created successfully.")
         return user
 
 class Seller(AbstractUser):
@@ -30,9 +34,20 @@ class Seller(AbstractUser):
 class Product(models.Model):
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField()
 
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            logger.info(f"Creating new product: {self.name} for seller {self.seller.email}")
+        else:
+            logger.info(f"Updating product: {self.name} for seller {self.seller.email}")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        logger.info(f"Deleting product: {self.name} for seller {self.seller.email}")
+        super().delete(*args, **kwargs)

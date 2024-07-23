@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import Seller, Product
 from django.contrib.auth.hashers import make_password
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SellerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,6 +14,7 @@ class SellerSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['password'] = make_password(validated_data['password'])
         seller = super().create(validated_data)
+        logger.info(f"Seller {seller.email} created successfully.")
         return seller
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -21,5 +25,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['seller'] = self.context['request'].user
-        return super().create(validated_data)
+        product = super().create(validated_data)
+        logger.info(f"Product {product.name} created successfully for seller {product.seller.email}.")
+        return product
     

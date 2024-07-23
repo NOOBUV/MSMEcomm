@@ -11,9 +11,7 @@ services:
       POSTGRES_PASSWORD: root
 
   redis:
-    image: redis:6
-    ports:
-      - "6379:6379"
+    image: "redis:alpine"
 
   web:
     build: .
@@ -24,27 +22,25 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgres://myuser:root@db:5432/mydb
+      - DATABASE_URL=postgres://myuser:root@db:5432/mydb
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env
 
   celery:
     build: .
     command: celery -A msmeEcomm worker --loglevel=info
     depends_on:
-      - db
+      - web
       - redis
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
 
   celery-beat:
     build: .
     command: celery -A msmeEcomm beat --loglevel=info
     depends_on:
-      - db
+      - web
       - redis
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
 
 volumes:
   postgres_data:

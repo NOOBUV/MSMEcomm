@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+from celery.schedules import crontab
+import os
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'sellerPortal',
+    'drf_spectacular'
 ]
 
 MIDDLEWARE = [
@@ -137,24 +140,64 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'MSME ECOMMERCE API',
+    'DESCRIPTION': 'API for MSME ECOMMERCE',
+    'VERSION': '1.0.0',
 }
 
 AUTH_USER_MODEL = 'sellerPortal.Seller'
 
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': False,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'django_warnings.log'),
+            'formatter': 'verbose',
         },
     },
     'loggers': {
-        'django.db.backends': {
-            'handlers': ['console'],
+        'django': {
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': True,
         },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'sellerPortal': { 
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'django.db.backends': {
+            'level': 'ERROR',
+            'handlers': ['console'],
+            'propagate': True,
+        }
     },
 }
 
@@ -164,3 +207,9 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_BEAT_SCHEDULE = {
+    'generate-product-summaries-every-10-minutes': {
+        'task': 'sellerPortal.tasks.generate_product_summaries',
+        'schedule': crontab(minute='*/1'),  # Every 10 minutes
+    },
+}

@@ -3,3 +3,9 @@ djangorestframework
 psycopg2-binary>=2.9
 gunicorn
 celery
+redis
+pandas
+drf-spectacular
+python-dotenv
+groq
+requests
